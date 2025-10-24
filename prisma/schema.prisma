@@ -1,0 +1,117 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  email     String   @unique
+  role      UserRole
+  location  Location
+  phone     String?
+  createdAt DateTime @default(now())
+  
+  // Relations
+  listings     FoodListing[]
+  claims       Claim[]
+  notifications Notification[]
+  
+  @@map("users")
+}
+
+model FoodListing {
+  id          String            @id @default(auto()) @map("_id") @db.ObjectId
+  donorId     String            @db.ObjectId
+  title       String
+  description String
+  foodType    String
+  quantity    String
+  location    Location
+  pickupTime  DateTime
+  expiryTime  DateTime
+  status      FoodListingStatus @default(available)
+  claimedBy   String?           @db.ObjectId
+  claimedAt   DateTime?
+  createdAt   DateTime          @default(now())
+  imageUrl    String?
+  
+  // Relations
+  donor User   @relation(fields: [donorId], references: [id])
+  claims Claim[]
+  
+  @@map("food_listings")
+}
+
+model Claim {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  listingId   String      @db.ObjectId
+  receiverId  String      @db.ObjectId
+  status      ClaimStatus @default(pending)
+  message     String?
+  createdAt   DateTime    @default(now())
+  confirmedAt DateTime?
+  
+  // Relations
+  listing  FoodListing @relation(fields: [listingId], references: [id])
+  receiver User        @relation(fields: [receiverId], references: [id])
+  
+  @@map("claims")
+}
+
+model Notification {
+  id        String           @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String           @db.ObjectId
+  type      NotificationType
+  title     String
+  message   String
+  listingId String?          @db.ObjectId
+  claimId   String?          @db.ObjectId
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  
+  // Relations
+  user User @relation(fields: [userId], references: [id])
+  
+  @@map("notifications")
+}
+
+// Enums
+enum UserRole {
+  donor
+  receiver
+}
+
+enum FoodListingStatus {
+  available
+  claimed
+  picked_up
+  expired
+}
+
+enum ClaimStatus {
+  pending
+  confirmed
+  rejected
+}
+
+enum NotificationType {
+  claim_request
+  claim_confirmed
+  claim_rejected
+  listing_expired
+}
+
+// Embedded types
+type Location {
+  lat     Float
+  lng     Float
+  address String
+}
