@@ -51,6 +51,16 @@ export async function POST(request: NextRequest) {
       imageUrl: body.imageUrl,
     });
 
+    // Create notification for the donor
+    await db.createNotification({
+      userId: body.donorId,
+      type: 'listing_created',
+      title: 'Listing Created Successfully',
+      message: `Your listing "${body.title}" has been created and is now available for claiming.`,
+      listingId: newListing.id,
+      read: false,
+    });
+
     return NextResponse.json({ listing: newListing }, { status: 201 });
   } catch (error) {
     console.error('Error creating listing:', error);

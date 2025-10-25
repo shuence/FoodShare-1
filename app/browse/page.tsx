@@ -15,7 +15,7 @@ import {
   SlidersHorizontal,
   Rows3,
 } from 'lucide-react';
-import MapInterface from '@/components/MapInterface';
+import MapboxComponent from '@/components/MapboxComponent';
 import ListingCard from '@/components/ListingCard';
 
 export default function BrowsePage() {
@@ -31,6 +31,7 @@ export default function BrowsePage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map' | 'table'>('grid');
   const [showFilters, setShowFilters] = useState<boolean> (false);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
 
   const loadListings = useCallback(async () => {
     try {
@@ -86,7 +87,16 @@ export default function BrowsePage() {
   };
 
   const handleMapListingSelect = (listing: FoodListing) => {
-    router.push(`/listing/${listing.id}`);
+    // Don't navigate directly, just highlight the listing
+    setSelectedListingId(listing.id);
+    
+    // Scroll to the listing if not in map view
+    if (viewMode !== 'map') {
+      const element = document.getElementById(`listing-${listing.id}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
   };
 
   const handleClaimClick = (listingId: string) => {
@@ -279,12 +289,11 @@ export default function BrowsePage() {
           </div>
         ) : viewMode === 'map' ? (
           <div className="bg-white rounded-lg shadow-sm">
-            <div className="h-96 rounded-lg overflow-hidden">
-              <MapInterface 
-                allListings={filteredAndSortedListings}
-                onListingSelect={handleMapListingSelect}
-              />
-            </div>
+            <MapboxComponent 
+              allListings={filteredAndSortedListings}
+              onListingSelect={handleMapListingSelect}
+              height="600px"
+            />
           </div>
         ) : viewMode === 'table' ? (
           <div className="bg-white rounded-lg shadow-sm overflow-x-auto">

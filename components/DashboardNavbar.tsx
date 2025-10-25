@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import RealtimeNotificationBell from './RealtimeNotificationBell';
 import {
   LayoutDashboard,
   Package,
@@ -13,11 +14,11 @@ import {
   HelpCircle,
   LogOut,
   UserCircle2,
-  Bell,
   Menu,
   X,
   Home,
-  Search
+  Search,
+  Bell
 } from 'lucide-react';
 
 interface DashboardNavbarProps {
@@ -35,6 +36,7 @@ export default function DashboardNavbar({ title = "Dashboard", subtitle }: Dashb
     { name: 'My Listings', href: '/dashboard/listings', icon: Package },
     { name: 'My Claims', href: '/dashboard/claims', icon: Heart },
     { name: 'Share Food', href: '/dashboard/create', icon: Plus },
+    { name: 'Notifications', href: '/notifications', icon: Bell },
     { name: 'Profile', href: '/profile', icon: UserCircle2 },
     { name: 'Settings', href: '/dashboard/settings', icon: Settings },
     { name: 'Help & Support', href: '/dashboard/help', icon: HelpCircle },
@@ -150,12 +152,7 @@ export default function DashboardNavbar({ title = "Dashboard", subtitle }: Dashb
             {subtitle && <p className="text-sm text-gray-600">{subtitle}</p>}
           </div>
           <div className="flex items-center space-x-2">
-            <button className="relative p-2 text-gray-400 hover:text-gray-600 transition-colors">
-              <Bell className="w-5 h-5" />
-              <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                3
-              </span>
-            </button>
+            <RealtimeNotificationBell />
           </div>
         </div>
       </header>

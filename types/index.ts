@@ -51,7 +51,17 @@ export interface Claim {
 export interface Notification {
   id: string;
   userId: string;
-  type: 'claim_request' | 'claim_confirmed' | 'claim_rejected' | 'listing_expired';
+  type: 
+    | 'claim_request' 
+    | 'claim_confirmed' 
+    | 'claim_rejected' 
+    | 'claim_completed'
+    | 'listing_expired'
+    | 'listing_created'
+    | 'listing_updated'
+    | 'listing_deleted'
+    | 'message_received'
+    | 'reminder';
   title: string;
   message: string;
   listingId?: string;

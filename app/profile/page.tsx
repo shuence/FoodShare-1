@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { User, MapPin, Phone, Mail, ArrowLeft, Bell, Shield, HelpCircle, LogOut, Edit3, Camera, Package, Heart, Clock } from 'lucide-react';
+import DashboardNavbar from '@/components/DashboardNavbar';
+import { User, MapPin, Phone, Mail, Bell, Shield, HelpCircle, LogOut, Edit3, Camera, Package, Heart, Clock } from 'lucide-react';
 import AddressAutocomplete from '@/components/AddressAutocomplete';
 
 export default function ProfilePage() {
@@ -408,64 +409,62 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center">
-              <button
-                onClick={() => router.back()}
-                className="mr-4 p-2 text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </button>
+    <div className="flex min-h-screen bg-gray-50">
+      <DashboardNavbar 
+        title="Profile"
+        subtitle="Manage your account and preferences"
+      />
+      
+      <div className="flex-1 overflow-auto">
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b border-gray-200">
+          <div className="max-w-6xl mx-auto px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
               <h1 className="text-2xl font-bold text-gray-900">Profile</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              {!isEditing ? (
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center"
-                >
-                  <Edit3 className="w-4 h-4 mr-2" />
-                  Edit Profile
-                </button>
-              ) : (
-                <div className="flex space-x-3">
+              <div className="flex items-center space-x-4">
+                {!isEditing ? (
                   <button
-                    onClick={handleCancel}
-                    className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                    onClick={() => setIsEditing(true)}
+                    className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center"
                   >
-                    Cancel
+                    <Edit3 className="w-4 h-4 mr-2" />
+                    Edit Profile
                   </button>
-                  <button
-                    onClick={handleSave}
-                    disabled={loading}
-                    className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
-                  >
-                    {loading ? 'Saving...' : 'Save Changes'}
-                  </button>
-                </div>
-              )}
+                ) : (
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={handleCancel}
+                      className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSave}
+                      disabled={loading}
+                      className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50"
+                    >
+                      {loading ? 'Saving...' : 'Save Changes'}
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      </header>
-
-      {/* Profile Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-6 lg:px-8 py-8">
-          <div className="flex items-center space-x-6">
-            <div className="relative">
-              <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center">
-                <User className="w-10 h-10 text-orange-500" />
-              </div>
-              {isEditing && (
-                <button className="absolute -bottom-1 -right-1 bg-orange-500 text-white p-2 rounded-full hover:bg-orange-600 transition-colors">
-                  <Camera className="w-4 h-4" />
-                </button>
-              )}
+        </header>
+        
+        {/* Profile Header */}
+        <div className="bg-white border-b border-gray-200">
+          <div className="max-w-6xl mx-auto px-6 lg:px-8 py-8">
+            <div className="flex items-center space-x-6">
+              <div className="relative">
+                <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center">
+                  <User className="w-10 h-10 text-orange-500" />
+                </div>
+                {isEditing && (
+                  <button className="absolute -bottom-1 -right-1 bg-orange-500 text-white p-2 rounded-full hover:bg-orange-600 transition-colors">
+                    <Camera className="w-4 h-4" />
+                  </button>
+                )}
             </div>
             <div className="flex-1">
               <h2 className="text-2xl font-bold text-gray-900">{user.name}</h2>
@@ -524,6 +523,7 @@ export default function ProfilePage() {
         {activeTab === 'notifications' && renderNotificationsTab()}
         {activeTab === 'privacy' && renderPrivacyTab()}
         {activeTab === 'help' && renderHelpTab()}
+      </div>
       </div>
     </div>
   );

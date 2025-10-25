@@ -57,16 +57,21 @@ export async function PUT(
       );
     }
 
+    // Get listing details for better notification message
+    const listing = await db.getListing(updatedClaim.listingId);
+    const listingTitle = listing ? listing.title : 'the listing';
+
     // Create notification for the receiver
     await db.createNotification({
       userId: updatedClaim.receiverId,
       read: false,
       type: status === 'confirmed' ? 'claim_confirmed' : 'claim_rejected',
-      title: status === 'confirmed' ? 'Claim Confirmed' : 'Claim Rejected',
+      title: status === 'confirmed' ? 'Claim Confirmed ✓' : 'Claim Rejected',
       message: status === 'confirmed' 
-        ? 'Your claim has been confirmed by the donor'
-        : 'Your claim has been rejected by the donor',
+        ? `Great news! Your claim for "${listingTitle}" has been confirmed. Please coordinate pickup with the donor.`
+        : `Unfortunately, your claim for "${listingTitle}" was not accepted by the donor.`,
       claimId: updatedClaim.id,
+      listingId: updatedClaim.listingId,
     } as Notification);
 
     return NextResponse.json({ claim: updatedClaim }, { status: 200 });

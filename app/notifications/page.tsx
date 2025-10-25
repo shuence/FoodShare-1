@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { Bell, Clock, CheckCircle, XCircle, Package, ArrowLeft } from 'lucide-react';
+import DashboardNavbar from '@/components/DashboardNavbar';
+import { Bell, Clock, CheckCircle, XCircle, Package } from 'lucide-react';
 import { Notification } from '@/types';
 
 export default function NotificationsPage() {
@@ -11,70 +12,80 @@ export default function NotificationsPage() {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
+  const [loading, setLoading] = useState(true);
 
-  const loadNotifications = useCallback(() => {
-    // Mock notifications data - moved to initialization to avoid setState in effect
-    const mockNotifications = [
-      {
-        id: '1',
-        type: 'claim_request',
-        title: 'New Claim Request',
-        message: 'John Doe wants to claim your "Fresh Vegetables" listing',
-        read: false,
-        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-        listingId: 'listing-1'
-      },
-      {
-        id: '2',
-        type: 'claim_confirmed',
-        title: 'Claim Confirmed',
-        message: 'Your claim for "Bread and Pastries" has been confirmed by Sarah',
-        read: true,
-        createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000), // 5 hours ago
-        listingId: 'listing-2'
-      },
-      {
-        id: '3',
-        type: 'listing_expired',
-        title: 'Listing Expired',
-        message: 'Your "Fresh Fruits" listing has expired and was automatically removed',
-        read: false,
-        createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
-        listingId: 'listing-3'
-      },
-      {
-        id: '4',
-        type: 'claim_rejected',
-        title: 'Claim Rejected',
-        message: 'Your claim for "Dairy Products" was rejected by the donor',
-        read: true,
-        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-        listingId: 'listing-4'
-      }
-    ];
+  const loadNotifications = useCallback(async () => {
+    if (!user) return;
     
-    setNotifications(mockNotifications as unknown as Notification[]);
-  }, []);
+    try {
+      const response = await fetch(`/api/notifications?userId=${user.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setNotifications(data.notifications || []);
+      } else {
+        console.error('Failed to load notifications');
+      }
+    } catch (error) {
+      console.error('Error loading notifications:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    loadNotifications();
+  }, [loadNotifications]);
 
   const filteredNotifications = notifications.filter(notification => {
     if (filter === 'unread') return !notification.read;
     return true;
   });
 
-  const markAsRead = (notificationId: string) => {
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === notificationId 
-          ? { ...notification, read: true }
-          : notification
-      )
-    );
+  const markAsRead = async (notificationId: string) => {
+    try {
+      const response = await fetch(`/api/notifications/${notificationId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ read: true }),
+      });
+
+      if (response.ok) {
+        setNotifications(prev => 
+          prev.map(notification => 
+            notification.id === notificationId 
+              ? { ...notification, read: true }
+              : notification
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
   };
 
-  const markAllAsRead = () => {
-    setNotifications(prev => 
-      prev.map(notification => ({ ...notification, read: true }))
-    );
+  const markAllAsRead = async () => {
+    if (!user) return;
+    
+    try {
+      // Mark all unread notifications as read
+      const unreadNotifications = notifications.filter(n => !n.read);
+      
+      await Promise.all(
+        unreadNotifications.map(notification =>
+          fetch(`/api/notifications/${notification.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ read: true }),
+          })
+        )
+      );
+
+      setNotifications(prev => 
+        prev.map(notification => ({ ...notification, read: true }))
+      );
+    } catch (error) {
+      console.error('Error marking all as read:', error);
+    }
   };
 
   const getNotificationIcon = (type: string) => {
@@ -84,9 +95,19 @@ export default function NotificationsPage() {
       case 'claim_confirmed':
         return <CheckCircle className="w-5 h-5 text-green-500" />;
       case 'claim_rejected':
+      case 'listing_deleted':
         return <XCircle className="w-5 h-5 text-red-500" />;
+      case 'claim_completed':
+        return <CheckCircle className="w-5 h-5 text-emerald-500" />;
       case 'listing_expired':
         return <Clock className="w-5 h-5 text-orange-500" />;
+      case 'listing_created':
+      case 'listing_updated':
+        return <Package className="w-5 h-5 text-indigo-500" />;
+      case 'message_received':
+        return <Bell className="w-5 h-5 text-purple-500" />;
+      case 'reminder':
+        return <Clock className="w-5 h-5 text-yellow-500" />;
       default:
         return <Package className="w-5 h-5 text-gray-500" />;
     }
@@ -99,24 +120,51 @@ export default function NotificationsPage() {
       case 'claim_confirmed':
         return 'border-l-green-500 bg-green-50';
       case 'claim_rejected':
+      case 'listing_deleted':
         return 'border-l-red-500 bg-red-50';
+      case 'claim_completed':
+        return 'border-l-emerald-500 bg-emerald-50';
       case 'listing_expired':
         return 'border-l-orange-500 bg-orange-50';
+      case 'listing_created':
+      case 'listing_updated':
+        return 'border-l-indigo-500 bg-indigo-50';
+      case 'message_received':
+        return 'border-l-purple-500 bg-purple-50';
+      case 'reminder':
+        return 'border-l-yellow-500 bg-yellow-50';
       default:
         return 'border-l-gray-500 bg-gray-50';
     }
   };
 
-  const formatTimeAgo = (date: Date) => {
+  const formatTimeAgo = (date: Date | string) => {
     const now = new Date();
-    const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    const diffInMinutes = Math.floor((now.getTime() - dateObj.getTime()) / (1000 * 60));
     
-    if (diffInMinutes < 60) {
-      return `${diffInMinutes} minutes ago`;
+    if (diffInMinutes < 1) {
+      return 'Just now';
+    } else if (diffInMinutes < 60) {
+      return `${diffInMinutes} ${diffInMinutes === 1 ? 'minute' : 'minutes'} ago`;
     } else if (diffInMinutes < 1440) {
-      return `${Math.floor(diffInMinutes / 60)} hours ago`;
+      const hours = Math.floor(diffInMinutes / 60);
+      return `${hours} ${hours === 1 ? 'hour' : 'hours'} ago`;
     } else {
-      return `${Math.floor(diffInMinutes / 1440)} days ago`;
+      const days = Math.floor(diffInMinutes / 1440);
+      return `${days} ${days === 1 ? 'day' : 'days'} ago`;
+    }
+  };
+
+  const handleNotificationClick = async (notification: Notification) => {
+    // Mark as read
+    await markAsRead(notification.id);
+    
+    // Navigate to relevant page
+    if (notification.listingId) {
+      router.push(`/listing/${notification.listingId}`);
+    } else if (notification.claimId) {
+      router.push(`/dashboard/claims`);
     }
   };
 
@@ -125,31 +173,28 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center">
-              <button 
-                onClick={() => router.back()}
-                className="flex items-center text-orange-500 hover:text-orange-600 mr-6"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
-              </button>
+    <div className="flex min-h-screen bg-gray-50">
+      <DashboardNavbar 
+        title="Notifications"
+        subtitle="Manage your notifications and updates"
+      />
+      
+      <div className="flex-1 overflow-auto">
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b border-gray-200">
+          <div className="max-w-6xl mx-auto px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
               <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="flex bg-gray-100 rounded-lg p-1">
-                <button
-                  onClick={() => setFilter('all')}
-                  className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
-                    filter === 'all'
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
+              <div className="flex items-center space-x-4">
+                <div className="flex bg-gray-100 rounded-lg p-1">
+                  <button
+                    onClick={() => setFilter('all')}
+                    className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                      filter === 'all'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
                   All
                 </button>
                 <button
@@ -175,7 +220,12 @@ export default function NotificationsPage() {
       </header>
 
       <div className="max-w-4xl mx-auto px-6 lg:px-8 py-8">
-        {filteredNotifications.length === 0 ? (
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-orange-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading notifications...</p>
+          </div>
+        ) : filteredNotifications.length === 0 ? (
           <div className="text-center py-12">
             <Bell className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -196,7 +246,7 @@ export default function NotificationsPage() {
                 className={`bg-white rounded-lg shadow-sm border-l-4 p-6 cursor-pointer hover:shadow-md transition-shadow ${
                   !notification.read ? 'border-l-orange-500' : 'border-l-gray-300'
                 } ${getNotificationColor(notification.type)}`}
-                onClick={() => markAsRead(notification.id)}
+                onClick={() => handleNotificationClick(notification)}
               >
                 <div className="flex items-start space-x-4">
                   <div className="flex-shrink-0">
@@ -273,6 +323,7 @@ export default function NotificationsPage() {
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

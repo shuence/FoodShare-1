@@ -19,7 +19,7 @@ import {
   Star,
   Navigation
 } from 'lucide-react';
-import MapInterface from '@/components/MapInterface';
+import MapboxComponent from '@/components/MapboxComponent';
 import { formatRating, getRatingStars } from '@/lib/gemini-rating';
 
 export default function ListingDetailPage() {
@@ -536,9 +536,11 @@ export default function ListingDetailPage() {
                         Directions
                       </button>
                     </div>
-                    <div className="h-64 rounded-lg overflow-hidden">
-                      <MapInterface selectedListing={listing as FoodListing & { location: { address: string } } & { pickupTime: Date } & { expiryTime: Date } & { status: string } & { foodType: string } & { title: string } & { description: string } & { quantity: string } & { id: string } & { donorId: string } & { claimedBy?: string } & { claimedAt?: Date } & { createdAt: Date } & { imageUrl?: string } & { location: { lat: number; lng: number; address: string } } & { donor: { name: string; phone: string; rating: number } } } />
-                    </div>
+                    <MapboxComponent 
+                      listing={listing}
+                      height="300px"
+                      zoom={14}
+                    />
                     <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
                       <p className="text-xs text-blue-900 font-medium">
                         📍 {listing.location.address}

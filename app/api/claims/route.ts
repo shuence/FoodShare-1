@@ -85,8 +85,19 @@ export async function POST(request: NextRequest) {
       read: false,
     }); 
 
-    // The SSE stream will automatically pick up this new notification
-    // and broadcast it to the donor's connected clients
+    // Create notification for the receiver (claimer)
+    await db.createNotification({
+      userId: receiverId,
+      type: 'claim_request',
+      title: 'Claim Request Sent',
+      message: `Your claim request for "${listing.title}" has been sent to the donor. Waiting for confirmation.`,
+      listingId,
+      claimId: newClaim.id,
+      read: false,
+    });
+
+    // The SSE stream will automatically pick up these new notifications
+    // and broadcast them to the connected clients
 
     return NextResponse.json({ claim: newClaim }, { status: 201 });
   } catch (error) {
