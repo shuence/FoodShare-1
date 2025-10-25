@@ -6,6 +6,8 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
+    const limitParam = searchParams.get('limit');
+    const limit = limitParam ? parseInt(limitParam, 10) : undefined;
 
     if (!userId) {
       return NextResponse.json(
@@ -14,7 +16,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const notifications = await db.getNotificationsByUser(userId);
+    let notifications = await db.getNotificationsByUser(userId);
+    
+    // Apply limit if specified
+    if (limit && limit > 0) {
+      notifications = notifications.slice(0, limit);
+    }
+    
     return NextResponse.json({ notifications }, { status: 200 });
   } catch (error) {
     console.error('Get notifications error:', error);

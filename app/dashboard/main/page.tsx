@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardNavbar from '@/components/DashboardNavbar';
+import RealtimeNotificationBell from '@/components/RealtimeNotificationBell';
 import { 
   Plus, 
   Package, 
@@ -14,7 +15,6 @@ import {
   CheckCircle,
   AlertCircle,
   Star,
-  Bell
 } from 'lucide-react';
 
 export default function DashboardMainPage() {
@@ -115,15 +115,10 @@ export default function DashboardMainPage() {
             <div className="flex items-center justify-between h-16">
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-                <p className="text-gray-600">Welcome back, {user?.name}!</p>
+                <p className="text-gray-600 text-sm">Welcome back, {user?.name}!</p>
               </div>
               <div className="flex items-center space-x-4">
-                <button className="relative p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                  <Bell className="w-6 h-6" />
-                  <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    3
-                  </span>
-                </button>
+                <RealtimeNotificationBell />
               </div>
             </div>
           </div>

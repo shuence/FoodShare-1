@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardNavbar from '@/components/DashboardNavbar';
 import RealtimeNotificationBell from '@/components/RealtimeNotificationBell';
+import { Notification } from '@/types';
 import { 
   Plus, 
   Package, 
@@ -29,7 +30,7 @@ export default function DashboardPage() {
     hoursSaved: 0,
     peopleHelped: 0,
   });
-  const [recentActivity, setRecentActivity] = useState<Record<string, unknown>[]>([]);
+  const [recentNotifications, setRecentNotifications] = useState<Notification[]>([]);
 
   const loadDashboardData = useCallback(async () => {
     if (!user) return;
@@ -45,11 +46,11 @@ export default function DashboardPage() {
         }));
       }
 
-      // Load recent activity
-      const activityResponse = await fetch('/api/activity');
-      if (activityResponse.ok) {
-        const activityData = await activityResponse.json();
-        setRecentActivity(activityData.activity || []);
+      // Load recent notifications (only 3)
+      const notificationsResponse = await fetch(`/api/notifications?userId=${user.id}&limit=3`);
+      if (notificationsResponse.ok) {
+        const notificationsData = await notificationsResponse.json();
+        setRecentNotifications(notificationsData.notifications || []);
       }
     } catch (error) {
       console.error('Error loading dashboard data:', error);
@@ -266,37 +267,70 @@ export default function DashboardPage() {
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-6">Recent Activity</h2>
               <div className="space-y-4">
-                {recentActivity.length > 0 ? (
-                  recentActivity.map((activity) => (
-                    <div key ={activity.id as string} className="flex items-start space-x-3">
-                      <div className={`p-2 rounded-full ${
-                        activity.type as string === 'listing' 
-                          ? 'bg-orange-100' 
-                          : 'bg-green-100'
-                      }`}>
-                        {activity.type as string === 'listing' ? (
-                          <Package className={`w-4 h-4 ${
-                            activity.status as string === 'completed' 
-                              ? 'text-orange-500' 
-                              : 'text-orange-400'
-                          }`} />
-                        ) : (
-                          <Heart className="w-4 h-4 text-green-500" />
+                {recentNotifications.length > 0 ? (
+                  recentNotifications.map((notification) => {
+                    const getNotificationIcon = () => {
+                      switch (notification.type) {
+                        case 'claim_request':
+                          return <Heart className="w-4 h-4 text-orange-500" />;
+                        case 'claim_confirmed':
+                          return <CheckCircle className="w-4 h-4 text-green-500" />;
+                        case 'claim_rejected':
+                          return <AlertCircle className="w-4 h-4 text-red-500" />;
+                        case 'listing_created':
+                          return <Package className="w-4 h-4 text-orange-500" />;
+                        case 'listing_expired':
+                          return <Clock className="w-4 h-4 text-gray-500" />;
+                        default:
+                          return <Activity className="w-4 h-4 text-gray-500" />;
+                      }
+                    };
+
+                    const getBgColor = () => {
+                      switch (notification.type) {
+                        case 'claim_request':
+                        case 'listing_created':
+                          return 'bg-orange-100';
+                        case 'claim_confirmed':
+                          return 'bg-green-100';
+                        case 'claim_rejected':
+                          return 'bg-red-100';
+                        default:
+                          return 'bg-gray-100';
+                      }
+                    };
+
+                    const formatTimeAgo = (date: Date | string) => {
+                      const now = new Date();
+                      const notificationDate = typeof date === 'string' ? new Date(date) : date;
+                      const diff = now.getTime() - notificationDate.getTime();
+                      const minutes = Math.floor(diff / 60000);
+                      const hours = Math.floor(minutes / 60);
+                      const days = Math.floor(hours / 24);
+
+                      if (days > 0) return `${days}d ago`;
+                      if (hours > 0) return `${hours}h ago`;
+                      if (minutes > 0) return `${minutes}m ago`;
+                      return 'Just now';
+                    };
+
+                    return (
+                      <div key={notification.id} className="flex items-start space-x-3">
+                        <div className={`p-2 rounded-full ${getBgColor()}`}>
+                          {getNotificationIcon()}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm ${notification.read ? 'text-gray-600' : 'font-medium text-gray-900'}`}>
+                            {notification.message}
+                          </p>
+                          <p className="text-xs text-gray-500">{formatTimeAgo(notification.createdAt)}</p>
+                        </div>
+                        {!notification.read && (
+                          <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
                         )}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900">{activity.title as string}</p>
-                        <p className="text-sm text-gray-600">{activity.description as string}</p>
-                        <p className="text-xs text-gray-500">{activity.time as unknown as string}</p>
-                      </div>
-                      {activity.status as string === 'completed' && (
-                        <CheckCircle className="w-4 h-4 text-green-500" />
-                      )}
-                      {activity.status as string === 'pending' && (
-                        <AlertCircle className="w-4 h-4 text-orange-500" />
-                      )}
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div className="text-center py-4">
                     <Activity className="w-8 h-8 text-gray-400 mx-auto mb-2" />
@@ -304,8 +338,11 @@ export default function DashboardPage() {
                   </div>
                 )}
               </div>
-              <button className="w-full mt-4 text-sm text-orange-500 hover:text-orange-600 font-medium">
-                View all activity
+              <button 
+                onClick={() => router.push('/notifications')}
+                className="w-full mt-4 text-sm text-orange-500 hover:text-orange-600 font-medium"
+              >
+                View all notifications
               </button>
             </div>
           </div>

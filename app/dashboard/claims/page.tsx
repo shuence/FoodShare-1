@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import DashboardNavbar from '@/components/DashboardNavbar';
+import RealtimeNotificationBell from '@/components/RealtimeNotificationBell';
 import { FoodListing, Claim } from '@/types';
 import { 
   Heart, 
@@ -177,6 +178,21 @@ export default function MyClaimsPage() {
       />
 
       <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Header */}
+        <header className="bg-white shadow-sm border-b border-gray-200">
+          <div className="max-w-6xl mx-auto px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">My Food Claims</h1>
+                <p className="text-gray-600 text-sm">Track your claimed food items</p>
+              </div>
+              <div className="flex items-center space-x-4">
+                <RealtimeNotificationBell />
+              </div>
+            </div>
+          </div>
+        </header>
+
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-6 lg:p-8">
           <div className="max-w-6xl mx-auto">
             <div className="flex justify-end mb-6">
