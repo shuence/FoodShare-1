@@ -22,6 +22,7 @@ export default function BrowsePage() {
   const router = useRouter();
   const { user } = useAuth();
   const [listings, setListings] = useState<FoodListing[]>([]);
+  const [listingsWithClaims, setListingsWithClaims] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [filterType, setFilterType] = useState('all');
@@ -41,14 +42,51 @@ export default function BrowsePage() {
       const response = await fetch(url);
       if (response.ok) {
         const data = await response.json();
-        setListings(data.listings || []);
+        const loadedListings = data.listings || [];
+        setListings(loadedListings);
+        
+        // Fetch claim information for each listing
+        const listingsWithClaimsData = await Promise.all(
+          loadedListings.map(async (listing: FoodListing) => {
+            try {
+              const claimsResponse = await fetch(`/api/claims?listingId=${listing.id}`);
+              if (claimsResponse.ok) {
+                const claimsData = await claimsResponse.json();
+                const claims = claimsData.claims || [];
+                
+                // Get confirmed claim details if any
+                const confirmedClaim = claims.find((c: any) => c.status === 'confirmed');
+                
+                return {
+                  ...listing,
+                  claims,
+                  claimInfo: {
+                    totalClaims: claims.length,
+                    pendingClaims: claims.filter((c: any) => c.status === 'pending').length,
+                    confirmedClaims: claims.filter((c: any) => c.status === 'confirmed').length,
+                    claimerName: confirmedClaim?.receiver?.name,
+                    claimerPhone: confirmedClaim?.receiver?.phone,
+                  }
+                };
+              }
+              return { ...listing, claims: [], claimInfo: { totalClaims: 0, pendingClaims: 0, confirmedClaims: 0 } };
+            } catch (error) {
+              console.error(`Error fetching claims for listing ${listing.id}:`, error);
+              return { ...listing, claims: [], claimInfo: { totalClaims: 0, pendingClaims: 0, confirmedClaims: 0 } };
+            }
+          })
+        );
+        
+        setListingsWithClaims(listingsWithClaimsData);
       } else {
         console.error('Failed to fetch listings');
         setListings([]);
+        setListingsWithClaims([]);
       }
     } catch (error) {
       console.error('Error loading listings:', error);
       setListings([]);
+      setListingsWithClaims([]);
     } finally {
       setLoading(false);
     }
@@ -58,7 +96,7 @@ export default function BrowsePage() {
     loadListings();
   }, [loadListings]);
 
-  const filteredAndSortedListings = listings
+  const filteredAndSortedListings = listingsWithClaims
     .filter(listing => {
       const matchesSearch = listing.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            listing.description.toLowerCase().includes(searchTerm.toLowerCase()) ||

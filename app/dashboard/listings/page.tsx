@@ -18,6 +18,9 @@ import {
   AlertCircle,
   Filter,
   Search,
+  Heart,
+  Users,
+  User,
 } from 'lucide-react';
 
 export default function MyListingsPage() {
@@ -25,6 +28,7 @@ export default function MyListingsPage() {
   const { user, loading } = useAuth();
   
   const [listings, setListings] = useState<any[]>([]);
+  const [listingClaims, setListingClaims] = useState<Record<string, any[]>>({});
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [pageLoading, setPageLoading] = useState(true);
@@ -35,7 +39,7 @@ export default function MyListingsPage() {
     }
   }, [user, loading, router]);
 
-  // Fetch user's listings from database
+  // Fetch user's listings and claims data from database
   useEffect(() => {
     const fetchUserListings = async () => {
       if (!user?.id) return;
@@ -45,7 +49,26 @@ export default function MyListingsPage() {
         const response = await fetch(`/api/listings?donorId=${user.id}`);
         if (response.ok) {
           const data = await response.json();
-          setListings(Array.isArray(data.listings) ? data.listings : []);
+          const userListings = Array.isArray(data.listings) ? data.listings : [];
+          setListings(userListings);
+          
+          // Fetch claims for each listing
+          const claimsData: Record<string, any[]> = {};
+          await Promise.all(
+            userListings.map(async (listing: any) => {
+              try {
+                const claimsResponse = await fetch(`/api/claims?listingId=${listing.id}`);
+                if (claimsResponse.ok) {
+                  const claimsResult = await claimsResponse.json();
+                  claimsData[listing.id] = claimsResult.claims || [];
+                }
+              } catch (error) {
+                console.error(`Error fetching claims for listing ${listing.id}:`, error);
+                claimsData[listing.id] = [];
+              }
+            })
+          );
+          setListingClaims(claimsData);
         }
       } catch (error) {
         console.error('Error fetching listings:', error);
@@ -139,6 +162,51 @@ export default function MyListingsPage() {
     router.push(`/listing/${listingId}`);
   };
 
+  const handleClaimAction = async (claimId: string, status: 'confirmed' | 'rejected') => {
+    try {
+      const response = await fetch(`/api/claims/${claimId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+
+      if (response.ok) {
+        // Refresh the claims data
+        if (user?.id) {
+          const listingsResponse = await fetch(`/api/listings?donorId=${user.id}`);
+          if (listingsResponse.ok) {
+            const data = await listingsResponse.json();
+            const userListings = Array.isArray(data.listings) ? data.listings : [];
+            setListings(userListings);
+            
+            // Re-fetch claims for updated listing
+            const claimsData: Record<string, any[]> = {};
+            await Promise.all(
+              userListings.map(async (listing: any) => {
+                try {
+                  const claimsResponse = await fetch(`/api/claims?listingId=${listing.id}`);
+                  if (claimsResponse.ok) {
+                    const claimsResult = await claimsResponse.json();
+                    claimsData[listing.id] = claimsResult.claims || [];
+                  }
+                } catch (error) {
+                  console.error(`Error fetching claims for listing ${listing.id}:`, error);
+                  claimsData[listing.id] = [];
+                }
+              })
+            );
+            setListingClaims(claimsData);
+          }
+        }
+      } else {
+        alert('Failed to update claim status');
+      }
+    } catch (error) {
+      console.error('Error updating claim:', error);
+      alert('An error occurred while updating the claim');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <DashboardNavbar 
@@ -174,7 +242,7 @@ export default function MyListingsPage() {
             </button>
           </div>
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow-sm p-6">
             <div className="flex items-center">
               <div className="p-3 bg-orange-100 rounded-lg">
@@ -217,13 +285,27 @@ export default function MyListingsPage() {
 
           <div className="bg-white rounded-lg shadow-sm p-6">
             <div className="flex items-center">
-              <div className="p-3 bg-gray-100 rounded-lg">
-                <XCircle className="w-6 h-6 text-gray-500" />
+              <div className="p-3 bg-yellow-100 rounded-lg">
+                <Heart className="w-6 h-6 text-yellow-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Expired</p>
+                <p className="text-sm font-medium text-gray-600">Total Claims</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {listings.filter(l => l.status === 'expired').length}
+                  {Object.values(listingClaims).reduce((sum, claims) => sum + claims.length, 0)}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="flex items-center">
+              <div className="p-3 bg-purple-100 rounded-lg">
+                <Eye className="w-6 h-6 text-purple-600" />
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Total Views</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {listings.reduce((sum, l) => sum + (l.views || 0), 0)}
                 </p>
               </div>
             </div>
@@ -261,7 +343,14 @@ export default function MyListingsPage() {
 
         {/* Listings */}
         <div className="space-y-6">
-          {filteredListings.map((listing) => (
+          {filteredListings.map((listing) => {
+            const claims = listingClaims[listing.id] || [];
+            const pendingClaims = claims.filter(c => c.status === 'pending').length;
+            const confirmedClaims = claims.filter(c => c.status === 'confirmed').length;
+            const rejectedClaims = claims.filter(c => c.status === 'rejected').length;
+            const totalClaims = claims.length;
+
+            return (
             <div key={listing.id} className="bg-white rounded-lg shadow-sm p-6">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -298,9 +387,103 @@ export default function MyListingsPage() {
                     </div>
                   </div>
                   
-                  <div className="flex items-center space-x-6 text-sm text-gray-500">
-                    <span>{listing.claims} claims</span>
-                    <span>{listing.views} views</span>
+                  {/* Enhanced Claims and Views Section */}
+                  <div className="border-t pt-4 mt-4">
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                      <div className="bg-orange-50 rounded-lg p-3">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <Heart className="w-4 h-4 text-orange-500" />
+                          <span className="text-xs font-medium text-gray-600">Total Claims</span>
+                        </div>
+                        <p className="text-xl font-bold text-orange-600">{totalClaims}</p>
+                      </div>
+                      
+                      <div className="bg-yellow-50 rounded-lg p-3">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <Clock className="w-4 h-4 text-yellow-600" />
+                          <span className="text-xs font-medium text-gray-600">Pending</span>
+                        </div>
+                        <p className="text-xl font-bold text-yellow-600">{pendingClaims}</p>
+                      </div>
+                      
+                      <div className="bg-green-50 rounded-lg p-3">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                          <span className="text-xs font-medium text-gray-600">Confirmed</span>
+                        </div>
+                        <p className="text-xl font-bold text-green-600">{confirmedClaims}</p>
+                      </div>
+                      
+                      <div className="bg-red-50 rounded-lg p-3">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <XCircle className="w-4 h-4 text-red-600" />
+                          <span className="text-xs font-medium text-gray-600">Rejected</span>
+                        </div>
+                        <p className="text-xl font-bold text-red-600">{rejectedClaims}</p>
+                      </div>
+                      
+                      <div className="bg-blue-50 rounded-lg p-3">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <Eye className="w-4 h-4 text-blue-600" />
+                          <span className="text-xs font-medium text-gray-600">Views</span>
+                        </div>
+                        <p className="text-xl font-bold text-blue-600">{listing.views || 0}</p>
+                      </div>
+                    </div>
+                    
+                    {/* Show pending claims with action buttons */}
+                    {pendingClaims > 0 && (
+                      <div className="mt-4 pt-4 border-t">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-sm font-semibold text-gray-900 flex items-center">
+                            <Users className="w-4 h-4 mr-2 text-orange-500" />
+                            Pending Claim Requests ({pendingClaims})
+                          </h4>
+                          <button
+                            onClick={() => router.push(`/dashboard/listings/${listing.id}/claims`)}
+                            className="text-sm text-orange-500 hover:text-orange-600 font-medium"
+                          >
+                            Manage Claims →
+                          </button>
+                        </div>
+                        <div className="space-y-2">
+                          {claims
+                            .filter(c => c.status === 'pending')
+                            .slice(0, 2)
+                            .map((claim: any) => (
+                              <div key={claim.id} className="flex items-center justify-between bg-yellow-50 rounded-lg p-3">
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-8 h-8 bg-orange-200 rounded-full flex items-center justify-center">
+                                    <User className="w-4 h-4 text-orange-700" />
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium text-gray-900">
+                                      {claim.receiver?.name || 'Anonymous User'}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                      Requested {new Date(claim.createdAt).toLocaleDateString()}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <button
+                                    onClick={() => handleClaimAction(claim.id, 'confirmed')}
+                                    className="px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded-lg font-medium transition-colors"
+                                  >
+                                    Accept
+                                  </button>
+                                  <button
+                                    onClick={() => handleClaimAction(claim.id, 'rejected')}
+                                    className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded-lg font-medium transition-colors"
+                                  >
+                                    Reject
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 
@@ -329,7 +512,8 @@ export default function MyListingsPage() {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
           
           {filteredListings.length === 0 && (
             <div className="text-center py-12">

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { FoodListing } from '@/types';
@@ -10,16 +11,27 @@ import { MapPin } from 'lucide-react';
 // You can get one for free at https://www.mapbox.com/
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || 'pk.eyJ1IjoiZm9vZHNoYXJlIiwiYSI6ImNtNXN5ZG5pNTA0N2cyaXB4M2RxdTZzNGMifQ.example';
 
+interface ListingWithClaims extends FoodListing {
+  claims?: any[];
+  claimInfo?: {
+    totalClaims: number;
+    pendingClaims: number;
+    confirmedClaims: number;
+    claimerName?: string;
+    claimerPhone?: string;
+  };
+}
+
 interface MapboxComponentProps {
   // For browse page: show all listings
-  allListings?: FoodListing[];
+  allListings?: ListingWithClaims[];
   // For listing detail page: show single listing
-  listing?: FoodListing | null;
+  listing?: ListingWithClaims | null;
   // Optional: show nearby listings on detail page
   showNearby?: boolean;
-  nearbyListings?: FoodListing[];
+  nearbyListings?: ListingWithClaims[];
   // Callback when a listing marker is clicked
-  onListingSelect?: (listing: FoodListing) => void;
+  onListingSelect?: (listing: ListingWithClaims) => void;
   // Map height
   height?: string;
   // Zoom level
@@ -62,7 +74,7 @@ export default function MapboxComponent({
   };
 
   // Get color based on listing status
-  const getMarkerColor = (listingItem: FoodListing, isMainListing: boolean = false): string => {
+  const getMarkerColor = (listingItem: ListingWithClaims, isMainListing: boolean = false): string => {
     if (isMainListing) return '#ea580c'; // Orange for main listing
     
     switch (listingItem.status) {
@@ -157,17 +169,75 @@ export default function MapboxComponent({
         </svg>
       `;
 
-      // Create popup content
+      // Create popup content with claim information and View Details button
+      const claimInfo = listingItem.claimInfo;
+      const hasActiveClaim = listingItem.status === 'claimed' && claimInfo?.claimerName;
+      
       const popupContent = `
-        <div class="p-2 max-w-xs">
-          <h3 class="font-bold text-base mb-1 text-black">${listingItem.title}</h3>
-          <p class="text-sm text-black mb-2">${listingItem.description.substring(0, 80)}${listingItem.description.length > 80 ? '...' : ''}</p>
-          <div class="text-sm space-y-1 text-black">
-            <div><strong class="text-black">Type:</strong> ${listingItem.foodType}</div>
-            <div><strong class="text-black">Quantity:</strong> ${listingItem.quantity}</div>
-            <div><strong class="text-black">Status:</strong> <span class="capitalize">${listingItem.status}</span></div>
-            <div><strong class="text-black">Location:</strong> ${listingItem.location.address}</div>
+        <div class="p-3 max-w-sm">
+          <h3 class="font-bold text-lg mb-2 text-black">${listingItem.title}</h3>
+          <p class="text-sm text-gray-700 mb-3">${listingItem.description.substring(0, 100)}${listingItem.description.length > 100 ? '...' : ''}</p>
+          
+          <div class="text-sm space-y-2 text-black mb-3">
+            <div class="flex justify-between">
+              <span class="font-semibold text-black">Type:</span> 
+              <span class="text-gray-700">${listingItem.foodType}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="font-semibold text-black">Quantity:</span> 
+              <span class="text-gray-700">${listingItem.quantity}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="font-semibold text-black">Status:</span> 
+              <span class="capitalize px-2 py-1 rounded text-xs font-medium ${
+                listingItem.status === 'available' ? 'bg-green-100 text-green-800' :
+                listingItem.status === 'claimed' ? 'bg-yellow-100 text-yellow-800' :
+                listingItem.status === 'expired' ? 'bg-red-100 text-red-800' :
+                'bg-gray-100 text-gray-800'
+              }">${listingItem.status}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="font-semibold text-black">Location:</span> 
+              <span class="text-gray-700 text-xs">${listingItem.location.address.substring(0, 30)}${listingItem.location.address.length > 30 ? '...' : ''}</span>
+            </div>
           </div>
+          
+          ${claimInfo && claimInfo.totalClaims > 0 ? `
+            <div class="border-t pt-2 mb-3">
+              <div class="text-sm font-semibold text-black mb-2">📊 Claim Statistics:</div>
+              <div class="grid grid-cols-3 gap-2 text-xs">
+                <div class="bg-orange-50 p-2 rounded text-center">
+                  <div class="font-bold text-orange-600">${claimInfo.totalClaims}</div>
+                  <div class="text-gray-600">Total</div>
+                </div>
+                <div class="bg-yellow-50 p-2 rounded text-center">
+                  <div class="font-bold text-yellow-600">${claimInfo.pendingClaims || 0}</div>
+                  <div class="text-gray-600">Pending</div>
+                </div>
+                <div class="bg-green-50 p-2 rounded text-center">
+                  <div class="font-bold text-green-600">${claimInfo.confirmedClaims || 0}</div>
+                  <div class="text-gray-600">Confirmed</div>
+                </div>
+              </div>
+            </div>
+          ` : ''}
+          
+          ${hasActiveClaim ? `
+            <div class="border-t pt-2 mb-3">
+              <div class="text-sm font-semibold text-black mb-2">👤 Claimed By:</div>
+              <div class="bg-blue-50 p-2 rounded">
+                <div class="text-sm font-medium text-black">${claimInfo?.claimerName || 'Anonymous'}</div>
+                ${claimInfo?.claimerPhone ? `<div class="text-xs text-gray-600">📞 ${claimInfo.claimerPhone}</div>` : ''}
+              </div>
+            </div>
+          ` : ''}
+          
+          <button 
+            onclick="window.location.href='/listing/${listingItem.id}'"
+            class="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-sm mt-2"
+          >
+            View Full Details →
+          </button>
         </div>
       `;
 
@@ -176,7 +246,7 @@ export default function MapboxComponent({
         offset: 25,
         closeButton: true,
         closeOnClick: false,
-        maxWidth: '300px'
+        maxWidth: '350px'
       }).setHTML(popupContent);
 
       // Create marker
