@@ -1,11 +1,16 @@
 import { prisma } from './prisma';
 import { User, FoodListing, Claim, Notification } from '@/types';
+import { generateFoodListingRating } from './gemini-rating';
 
 // Database operations using Prisma
 export class DatabaseService {
-  getAllListings(): FoodListing | FoodListing[] | PromiseLike<FoodListing | FoodListing[] | null> | null {
-    throw new Error('Method not implemented.');
+  async getAllListings(): Promise<FoodListing[]> {
+    const listings = await prisma.foodListing.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+    return listings as FoodListing[];
   }
+
   // User operations
   async createUser(userData: Omit<User, 'id' | 'createdAt'>): Promise<User> {
     const user = await prisma.user.create({
@@ -43,7 +48,22 @@ export class DatabaseService {
   }
 
   // Food listing operations
-  async createListing(listingData: Omit<FoodListing, 'id' | 'createdAt'>): Promise<FoodListing> {
+  async createListing(listingData: Omit<FoodListing, 'id' | 'createdAt' | 'aiRating'>): Promise<FoodListing> {
+    // Generate AI rating based on listing details
+    let aiRating: number | null = null;
+    try {
+      aiRating = await generateFoodListingRating({
+        title: listingData.title,
+        description: listingData.description,
+        foodType: listingData.foodType,
+        quantity: listingData.quantity,
+        imageUrl: listingData.imageUrl,
+      });
+    } catch (error) {
+      console.error('Error generating AI rating:', error);
+      // Continue with listing creation even if rating generation fails
+    }
+
     const listing = await prisma.foodListing.create({
       data: {
         donorId: listingData.donorId,
@@ -58,7 +78,8 @@ export class DatabaseService {
         claimedBy: listingData.claimedBy,
         claimedAt: listingData.claimedAt,
         imageUrl: listingData.imageUrl,
-      },
+        aiRating: aiRating || undefined,
+      } as any,
     });
     return listing as FoodListing;
   }
@@ -66,6 +87,7 @@ export class DatabaseService {
   async getListing(id: string): Promise<FoodListing | null> {
     const listing = await prisma.foodListing.findUnique({
       where: { id },
+      include: { donor: true },
     });
     return listing as FoodListing | null;
   }

@@ -42,6 +42,7 @@ model FoodListing {
   claimedAt   DateTime?
   createdAt   DateTime          @default(now())
   imageUrl    String?
+  aiRating    Float?
   
   // Relations
   donor User   @relation(fields: [donorId], references: [id])

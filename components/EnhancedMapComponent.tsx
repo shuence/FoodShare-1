@@ -4,13 +4,23 @@ import React from 'react';
 import { MapPin } from 'lucide-react';
 import { FoodListing } from '@/types';
 
-interface MapComponentProps {
+interface EnhancedMapComponentProps {
   onListingSelect?: (listing: FoodListing) => void;
   selectedListing?: FoodListing | null;
   allListings?: FoodListing[];
+  listing?: FoodListing | null;
+  showNearby?: boolean;
+  zoom?: number;
 }
 
-export default function MapComponent({ onListingSelect, selectedListing, allListings }: MapComponentProps) {
+export default function EnhancedMapComponent({ 
+  listing, 
+  onListingSelect,
+  selectedListing, 
+  allListings,
+  showNearby = true, 
+  zoom = 14 
+}: EnhancedMapComponentProps) {
   return (
     <div className="flex flex-col items-center justify-center h-96 bg-gradient-to-br from-orange-50 to-yellow-50 rounded-lg border-2 border-dashed border-orange-300">
       <div className="text-center space-y-4">

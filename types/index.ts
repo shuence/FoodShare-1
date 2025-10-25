@@ -35,6 +35,7 @@ export interface FoodListing {
   claimedAt?: Date;
   createdAt: Date;
   imageUrl?: string;
+  aiRating?: number;
 }
 
 export interface Claim {

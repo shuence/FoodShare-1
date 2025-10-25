@@ -13,8 +13,10 @@ import {
   Grid,
   List,
   SlidersHorizontal,
+  Rows3,
 } from 'lucide-react';
 import MapInterface from '@/components/MapInterface';
+import ListingCard from '@/components/ListingCard';
 
 export default function BrowsePage() {
   const router = useRouter();
@@ -26,17 +28,14 @@ export default function BrowsePage() {
   const [filterStatus, setFilterStatus] = useState('available');
   const [activeTab, setActiveTab] = useState('available');
   const [sortBy, setSortBy] = useState('newest');
-  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list' | 'map' | 'table'>('grid');
   const [showFilters, setShowFilters] = useState<boolean> (false);
+  const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
   const loadListings = useCallback(async () => {
     try {
-      let url = '/api/listings';
-      if (activeTab === 'available') {
-        url += '?status=available';
-      } else if (activeTab === 'all') {
-        url += '?status=all';
-      }
+      // Always load all listings without any filter
+      const url = '/api/listings?status=all';
       
       const response = await fetch(url);
       if (response.ok) {
@@ -52,7 +51,7 @@ export default function BrowsePage() {
     } finally {
       setLoading(false);
     }
-  }, [activeTab]);
+  }, []);
 
   useEffect(() => {
     loadListings();
@@ -64,8 +63,8 @@ export default function BrowsePage() {
                            listing.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            listing.foodType.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesType = filterType === 'all' || listing.foodType === filterType;
-      const matchesStatus = listing.status === filterStatus;
-      return matchesSearch && matchesType && matchesStatus;
+      // Show all listings regardless of status
+      return matchesSearch && matchesType;
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -84,6 +83,10 @@ export default function BrowsePage() {
 
   const handleListingClick = (listingId: string) => {
     router.push(`/listing/${listingId}`);
+  };
+
+  const handleMapListingSelect = (listing: FoodListing) => {
+    router.push(`/listing/${listing.id}`);
   };
 
   const handleClaimClick = (listingId: string) => {
@@ -121,6 +124,14 @@ export default function BrowsePage() {
                 }`}
               >
                 <List className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setViewMode('table')}
+                className={`p-2 rounded-lg transition-colors ${
+                  viewMode === 'table' ? 'bg-orange-500 text-white' : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Rows3 className="w-5 h-5" />
               </button>
               <button
                 onClick={() => setViewMode('map')}
@@ -166,33 +177,8 @@ export default function BrowsePage() {
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="bg-white rounded-lg shadow-sm mb-8">
-          <div className="border-b border-gray-200">
-            <nav className="flex space-x-8 px-6">
-              <button
-                onClick={() => setActiveTab('available')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === 'available'
-                    ? 'border-orange-500 text-orange-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                Available Food
-              </button>
-              <button
-                onClick={() => setActiveTab('all')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === 'all'
-                    ? 'border-orange-500 text-orange-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                All Listings
-              </button>
-            </nav>
-          </div>
-        </div>
+        {/* Tabs - Hidden since showing all listings */}
+        {/* Previously had tabs for Available/All, but now showing all by default */}
 
         {/* Search and Filters */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
@@ -253,20 +239,6 @@ export default function BrowsePage() {
               <div className="grid md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Status
-                  </label>
-                  <select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
-                  >
-                    <option value="available">Available</option>
-                    <option value="claimed">Claimed</option>
-                    <option value="picked_up">Picked Up</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Distance
                   </label>
                   <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
@@ -308,8 +280,59 @@ export default function BrowsePage() {
         ) : viewMode === 'map' ? (
           <div className="bg-white rounded-lg shadow-sm">
             <div className="h-96 rounded-lg overflow-hidden">
-              <MapInterface />
+              <MapInterface 
+                allListings={filteredAndSortedListings}
+                onListingSelect={handleMapListingSelect}
+              />
             </div>
+          </div>
+        ) : viewMode === 'table' ? (
+          <div className="bg-white rounded-lg shadow-sm overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-100 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Food Item</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Type</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Quantity</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Pickup Time</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Expires</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">Location</th>
+                  <th className="px-6 py-3 text-center text-sm font-semibold text-gray-900">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAndSortedListings.map((listing: FoodListing) => (
+                  <tr key={listing.id} className="border-b border-gray-200 hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{listing.title}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{listing.foodType}</td>
+                    <td className="px-6 py-4 text-sm">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium text-white ${
+                        listing.status === 'available' 
+                          ? 'bg-green-600'
+                          : listing.status === 'claimed'
+                          ? 'bg-amber-600'
+                          : 'bg-gray-600'
+                      }`}>
+                        {listing.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{listing.quantity}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{new Date(listing.pickupTime).toLocaleDateString()}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{new Date(listing.expiryTime).toLocaleDateString()}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600 truncate max-w-xs">{listing.location.address}</td>
+                    <td className="px-6 py-4 text-center">
+                      <button
+                        onClick={() => handleListingClick(listing.id)}
+                        className="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1 rounded text-sm font-medium transition-colors"
+                      >
+                        View
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         ) : filteredAndSortedListings.length === 0 ? (
           <div className="text-center py-12">
@@ -327,83 +350,15 @@ export default function BrowsePage() {
               ? 'grid md:grid-cols-2 lg:grid-cols-3 gap-6'
               : 'space-y-4'
           }>
-            {filteredAndSortedListings.map((listing: FoodListing & { location: { address: string } } & { pickupTime: Date } & { expiryTime: Date } & { status: string } & { foodType: string } & { title: string } & { description: string } & { quantity: string } & { id: string } & { donorId: string } & { claimedBy?: string } & { claimedAt?: Date } & { createdAt: Date } & { imageUrl?: string }) => (
-              <div
+            {filteredAndSortedListings.map((listing: FoodListing) => (
+              <ListingCard
                 key={listing.id}
-                onClick={() => handleListingClick(listing.id)}
-                className={`bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer ${
-                  viewMode === 'list' ? 'p-6' : 'p-6'
-                }`}
-              >
-                <div className={viewMode === 'list' ? 'flex space-x-6' : ''}>
-                  <div className={viewMode === 'list' ? 'flex-1' : ''}>
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                          {listing.title}
-                        </h3>
-                        <div className="flex items-center space-x-2 mb-2">
-                          <span className="px-2 py-1 bg-orange-100 text-orange-800 text-xs font-medium rounded-full">
-                            {listing.foodType}
-                          </span>
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                            listing.status === 'available' 
-                              ? 'bg-green-100 text-green-800'
-                              : listing.status === 'claimed'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-gray-100 text-gray-800'
-                          }`}>
-                            {listing.status}
-                          </span>
-                        </div>
-                        <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-                          {listing.description}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Package className="w-4 h-4 mr-2" />
-                        {listing.quantity}
-                      </div>
-                      <div className="flex items-center text-sm text-gray-600">
-                        <MapPin className="w-4 h-4 mr-2" />
-                        {listing.location.address}
-                      </div>
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Clock className="w-4 h-4 mr-2" />
-                        Pickup: {new Date(listing.pickupTime).toLocaleDateString()}
-                      </div>
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Clock className="w-4 h-4 mr-2" />
-                        Expires: {new Date(listing.expiryTime).toLocaleDateString()}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex space-x-2 mt-4">
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleListingClick(listing.id);
-                      }}
-                      className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2 px-4 rounded-lg text-sm font-medium transition-colors"
-                    >
-                      View Details
-                    </button>
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleClaimClick(listing.id);
-                      }}
-                      className="flex-1 bg-orange-500 hover:bg-orange-600 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors"
-                    >
-                      {user ? 'Claim Food' : 'Login to Claim'}
-                    </button>
-                  </div>
-                </div>
-              </div>
+                listing={listing}
+                viewMode={viewMode as 'grid' | 'list' | 'table'}
+                onViewDetails={handleListingClick}
+                onClaimFood={handleClaimClick}
+                isLoggedIn={!!user}
+              />
             ))}
           </div>
         )}

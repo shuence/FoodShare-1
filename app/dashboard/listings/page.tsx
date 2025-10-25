@@ -24,73 +24,39 @@ export default function MyListingsPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
   
-  // Helper function to create static dates for demo purposes
-  const createStaticDate = (hoursOffset: number) => {
-    const baseDate = new Date('2024-01-15T12:00:00Z'); // Fixed base date
-    return new Date(baseDate.getTime() + hoursOffset * 60 * 60 * 1000);
-  };
-  
-  const [listings, setListings] = useState([
-    {
-      id: '1',
-      title: 'Fresh Organic Vegetables',
-      description: 'Assorted fresh vegetables from my garden including tomatoes, cucumbers, and lettuce.',
-      foodType: 'Vegetables',
-      quantity: '5 lbs',
-      status: 'available',
-      pickupTime: createStaticDate(2),
-      expiryTime: createStaticDate(24),
-      location: {
-        address: '123 Main Street, New York, NY 10001',
-        lat: 40.7128,
-        lng: -74.0060,
-      },
-      claims: 2,
-      views: 15,
-    },
-    {
-      id: '2',
-      title: 'Fresh Bread and Pastries',
-      description: 'Freshly baked bread, croissants, and muffins from local bakery.',
-      foodType: 'Bakery',
-      quantity: '2 bags',
-      status: 'claimed',
-      pickupTime: createStaticDate(-1),
-      expiryTime: createStaticDate(12),
-      location: {
-        address: '456 Broadway, New York, NY 10013',
-        lat: 40.7589,
-        lng: -73.9851,
-      },
-      claims: 1,
-      views: 8,
-    },
-    {
-      id: '3',
-      title: 'Mixed Fruits Basket',
-      description: 'Fresh seasonal fruits including apples, oranges, bananas, and grapes.',
-      foodType: 'Fruits',
-      quantity: '3 lbs',
-      status: 'expired',
-      pickupTime: createStaticDate(-48),
-      expiryTime: createStaticDate(-24),
-      location: {
-        address: '789 5th Avenue, New York, NY 10022',
-        lat: 40.7505,
-        lng: -73.9934,
-      },
-      claims: 0,
-      views: 12,
-    },
-  ]);
+  const [listings, setListings] = useState<any[]>([]);
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [pageLoading, setPageLoading] = useState(true);
 
   useEffect(() => {
     if (!user && !loading) {
       router.push('/login');
     }
   }, [user, loading, router]);
+
+  // Fetch user's listings from database
+  useEffect(() => {
+    const fetchUserListings = async () => {
+      if (!user?.id) return;
+      
+      try {
+        setPageLoading(true);
+        const response = await fetch(`/api/listings?donorId=${user.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          setListings(Array.isArray(data.listings) ? data.listings : []);
+        }
+      } catch (error) {
+        console.error('Error fetching listings:', error);
+        setListings([]);
+      } finally {
+        setPageLoading(false);
+      }
+    };
+
+    fetchUserListings();
+  }, [user?.id]);
 
   if (loading) {
     return (
@@ -108,6 +74,14 @@ export default function MyListingsPage() {
     );
   }
 
+  if (pageLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-orange-500"></div>
+      </div>
+    );
+  }
+
   const filteredListings = listings.filter(listing => {
     const matchesSearch = listing.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          listing.description.toLowerCase().includes(searchTerm.toLowerCase());
@@ -118,13 +92,13 @@ export default function MyListingsPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'available':
-        return 'bg-green-100 text-green-800';
+        return 'bg-green-500 text-white';
       case 'claimed':
-        return 'bg-blue-100 text-blue-800';
+        return 'bg-blue-500 text-white';
       case 'expired':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-500 text-white';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-gray-500 text-white';
     }
   };
 
@@ -138,6 +112,15 @@ export default function MyListingsPage() {
         return <XCircle className="w-4 h-4" />;
       default:
         return <AlertCircle className="w-4 h-4" />;
+    }
+  };
+
+  const formatDate = (dateString: string | Date) => {
+    try {
+      const date = typeof dateString === 'string' ? new Date(dateString) : dateString;
+      return date.toLocaleDateString();
+    } catch {
+      return 'Invalid date';
     }
   };
 
@@ -306,12 +289,12 @@ export default function MyListingsPage() {
                     <div className="flex items-center text-sm text-gray-600">
                       <Clock className="w-4 h-4 mr-2" />
                       <span className="font-medium">Pickup:</span>
-                      <span className="ml-2">{listing.pickupTime.toLocaleDateString()}</span>
+                      <span className="ml-2">{formatDate(listing.pickupTime)}</span>
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
                       <Clock className="w-4 h-4 mr-2" />
                       <span className="font-medium">Expires:</span>
-                      <span className="ml-2">{listing.expiryTime.toLocaleDateString()}</span>
+                      <span className="ml-2">{formatDate(listing.expiryTime)}</span>
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
                       <MapPin className="w-4 h-4 mr-2" />

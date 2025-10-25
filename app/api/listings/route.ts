@@ -33,3 +33,27 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
   }
 }
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    
+    const newListing = await db.createListing({
+      donorId: body.donorId,
+      title: body.title,
+      description: body.description,
+      foodType: body.foodType,
+      quantity: body.quantity,
+      location: body.location,
+      pickupTime: new Date(body.pickupTime),
+      expiryTime: new Date(body.expiryTime),
+      status: body.status || 'available',
+      imageUrl: body.imageUrl,
+    });
+
+    return NextResponse.json({ listing: newListing }, { status: 201 });
+  } catch (error) {
+    console.error('Error creating listing:', error);
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Unknown error' }, { status: 500 });
+  }
+}

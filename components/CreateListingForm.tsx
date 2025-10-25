@@ -1,11 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Clock, Package, FileText } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Clock, Package, FileText, Image as ImageIcon } from 'lucide-react';
 import { FoodListing } from '@/types';
-import { db } from '@/lib/database-prisma';
 import { useAuth } from '@/contexts/AuthContext';
-import AddressAutocomplete from '@/components/AddressAutocomplete';
+import AddressAutocomplete, { AddressData, AddressAutocompleteRef } from '@/components/AddressAutocomplete';
 
 interface CreateListingFormProps {
   onListingCreated?: (listing: FoodListing) => void;
@@ -24,33 +23,117 @@ export default function CreateListingForm({ onListingCreated, onClose }: CreateL
     address: user?.location?.address || '',
     lat: user?.location?.lat || 40.7128,
     lng: user?.location?.lng || -74.0060,
+    image: null as File | null,
   });
   const [loading, setLoading] = useState<boolean>(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('Image size must be less than 5MB');
+        return;
+      }
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Please select a valid image file');
+        return;
+      }
+
+      setFormData(prev => ({ ...prev, image: file }));
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadImage = async (file: File): Promise<string | null> => {
+    try {
+      const reader = new FileReader();
+      return new Promise((resolve, reject) => {
+        reader.onload = async () => {
+          try {
+            const base64String = reader.result as string;
+            const response = await fetch('/api/upload', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                image: base64String,
+                filename: file.name,
+              }),
+            });
+
+            if (!response.ok) {
+              throw new Error('Failed to upload image');
+            }
+
+            const data = await response.json();
+            resolve(data.imageUrl);
+          } catch (error) {
+            console.error('Error uploading image:', error);
+            reject(error);
+          }
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      return null;
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || !formData.pickupTime || !formData.expiryTime) return;
 
     setLoading(true);
     try {
       const pickupTime = new Date(formData.pickupTime);
       const expiryTime = new Date(formData.expiryTime);
 
-      const newListing = await db.createListing({
-        donorId: user.id,
-        title: formData.title,
-        description: formData.description,
-        foodType: formData.foodType,
-        quantity: formData.quantity,
-        location: {
-          lat: formData.lat,
-          lng: formData.lng,
-          address: formData.address,
-        },
-        pickupTime,
-        expiryTime,
-        status: 'available',
+      // Upload image if provided
+      let imageUrl: string | undefined;
+      if (formData.image) {
+        imageUrl = (await uploadImage(formData.image)) || undefined;
+      }
+
+      // Call the API endpoint to create listing
+      const response = await fetch('/api/listings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          donorId: user.id,
+          title: formData.title,
+          description: formData.description,
+          foodType: formData.foodType,
+          quantity: formData.quantity,
+          location: {
+            lat: formData.lat,
+            lng: formData.lng,
+            address: formData.address,
+          },
+          pickupTime: pickupTime.toISOString(),
+          expiryTime: expiryTime.toISOString(),
+          status: 'available',
+          imageUrl,
+        }),
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to create listing');
+      }
+
+      const data = await response.json();
+      const newListing = data.listing;
 
       onListingCreated?.(newListing);
       onClose?.();
@@ -66,7 +149,9 @@ export default function CreateListingForm({ onListingCreated, onClose }: CreateL
         address: user?.location?.address || '',
         lat: user?.location?.lat || 40.7128,
         lng: user?.location?.lng || -74.0060,
+        image: null,
       });
+      setImagePreview(null);
     } catch (error) {
       console.error('Error creating listing:', error);
     } finally {
@@ -79,12 +164,13 @@ export default function CreateListingForm({ onListingCreated, onClose }: CreateL
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleAddressChange = (address: string, lat: number, lng: number) => {
+  const handleAddressSelect = (addressData: AddressData) => {
+    console.log('Address selected:', addressData);
     setFormData(prev => ({
       ...prev,
-      address,
-      lat,
-      lng,
+      address: addressData.address,
+      lat: addressData.lat,
+      lng: addressData.lng,
     }));
   };
 
@@ -134,7 +220,7 @@ export default function CreateListingForm({ onListingCreated, onClose }: CreateL
             value={formData.title}
             onChange={handleInputChange}
             placeholder="e.g., Fresh Vegetables, Bread, etc."
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-900 placeholder-gray-400"
             required
           />
         </div>
@@ -150,9 +236,55 @@ export default function CreateListingForm({ onListingCreated, onClose }: CreateL
             onChange={handleInputChange}
             placeholder="Describe the food items, condition, etc."
             rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 placeholder-gray-600"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 placeholder-gray-400"
             required
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            <ImageIcon className="inline w-4 h-4 mr-1" />
+            Food Image
+          </label>
+          <div className="flex items-center space-x-2">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors text-sm"
+            >
+              Choose Image
+            </button>
+            {formData.image && (
+              <span className="text-sm text-gray-600">{formData.image.name}</span>
+            )}
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            className="hidden"
+          />
+          {imagePreview && (
+            <div className="mt-3 relative">
+              <img
+                src={imagePreview}
+                alt="Preview"
+                className="max-h-40 rounded-md border border-gray-300"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  setFormData(prev => ({ ...prev, image: null }));
+                  setImagePreview(null);
+                  if (fileInputRef.current) fileInputRef.current.value = '';
+                }}
+                className="mt-1 text-xs text-red-600 hover:text-red-800 underline"
+              >
+                Remove Image
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -164,10 +296,10 @@ export default function CreateListingForm({ onListingCreated, onClose }: CreateL
               name="foodType"
               value={formData.foodType}
               onChange={handleInputChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900"
               required
             >
-              <option value="">Select type</option>
+              <option value="" className="text-gray-900">Select type</option>
               <option value="Vegetables">Vegetables</option>
               <option value="Fruits">Fruits</option>
               <option value="Bakery">Bakery</option>
@@ -188,7 +320,7 @@ export default function CreateListingForm({ onListingCreated, onClose }: CreateL
               value={formData.quantity}
               onChange={handleInputChange}
               placeholder="e.g., 5 lbs, 2 bags"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 placeholder-gray-600"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 placeholder-gray-400"
               required
             />
           </div>
@@ -206,7 +338,7 @@ export default function CreateListingForm({ onListingCreated, onClose }: CreateL
             onChange={handleInputChange}
             min={getMinDateTime()}
             max={getMaxDateTime()}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900"
             required
           />
         </div>
@@ -223,18 +355,28 @@ export default function CreateListingForm({ onListingCreated, onClose }: CreateL
             onChange={handleInputChange}
             min={formData.pickupTime || getMinDateTime()}
             max={getMaxDateTime()}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900"
             required
           />
         </div>
 
         <div>
+          <label htmlFor="address-autocomplete" className="block text-sm font-medium text-gray-700 mb-1">
+            📍 Pickup Address
+          </label>
           <AddressAutocomplete
-            value={formData.address}
-            onChange={handleAddressChange}
+            onAddressSelect={handleAddressSelect}
             placeholder="Enter pickup address"
-            required
+            label=""
+            defaultValue={formData.address}
           />
+          {formData.address && (
+            <div className="mt-2 p-3 bg-blue-50 rounded border border-blue-200">
+              <p className="text-xs text-blue-900 font-medium mb-1">Selected Address:</p>
+              <p className="text-sm text-blue-800">{formData.address}</p>
+              <p className="text-xs text-blue-700 mt-1">Lat: {formData.lat.toFixed(4)}, Lng: {formData.lng.toFixed(4)}</p>
+            </div>
+          )}
         </div>
 
         <div className="flex space-x-3 pt-4">

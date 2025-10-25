@@ -12,7 +12,7 @@ export default function Help() {
             <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-8 leading-tight">
               Help <span className="text-orange-500">Center</span>
             </h1>
-            <p className="text-xl md:text-2xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-xl md:text-2xl text-gray-700 mb-12 max-w-3xl mx-auto leading-relaxed">
               Find answers to common questions and get the support you need.
             </p>
           </div>
@@ -47,7 +47,7 @@ export default function Help() {
                 </svg>
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-4">Getting Started</h3>
-              <p className="text-gray-600 leading-relaxed">
+              <p className="text-gray-700 leading-relaxed">
                 New to FoodShare? Learn how to create your account and make your first listing.
               </p>
             </div>
@@ -59,7 +59,7 @@ export default function Help() {
                 </svg>
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-4">Safety Guidelines</h3>
-              <p className="text-gray-600 leading-relaxed">
+              <p className="text-gray-700 leading-relaxed">
                 Important safety information for sharing and receiving food in your community.
               </p>
             </div>
@@ -71,7 +71,7 @@ export default function Help() {
                 </svg>
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-4">Troubleshooting</h3>
-              <p className="text-gray-600 leading-relaxed">
+              <p className="text-gray-700 leading-relaxed">
                 Having technical issues? Find solutions to common problems and bugs.
               </p>
             </div>
@@ -84,7 +84,7 @@ export default function Help() {
         <div className="max-w-4xl mx-auto px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-6">Frequently Asked Questions</h2>
-            <p className="text-xl text-gray-600">Find answers to the most common questions about FoodShare</p>
+            <p className="text-xl text-gray-700">Find answers to the most common questions about FoodShare</p>
           </div>
 
           <div className="space-y-8">
@@ -96,7 +96,7 @@ export default function Help() {
                 </svg>
               </button>
               <div className="px-8 pb-6">
-                <p className="text-gray-600 leading-relaxed">
+                <p className="text-gray-700 leading-relaxed">
                   Creating a listing is easy! Simply click &quot;Create Listing&quot; on your dashboard, upload photos of your food, 
                   add a description, set your location, and specify pickup details. Your listing will be visible to 
                   community members in your area.
@@ -112,7 +112,7 @@ export default function Help() {
                 </svg>
               </button>
               <div className="px-8 pb-6">
-                <p className="text-gray-600 leading-relaxed">
+                <p className="text-gray-700 leading-relaxed">
                   Safety is our top priority. We provide comprehensive safety guidelines, encourage users to follow 
                   proper food handling practices, and have a reporting system for any concerns. All users must 
                   verify their identity, and we recommend following standard food safety practices.
@@ -128,7 +128,7 @@ export default function Help() {
                 </svg>
               </button>
               <div className="px-8 pb-6">
-                <p className="text-gray-600 leading-relaxed">
+                <p className="text-gray-700 leading-relaxed">
                   When you find a listing you&apos;re interested in, click &quot;Claim Food&quot; and send a message to the donor. 
                   The donor will review your request and coordinate pickup details. Make sure to follow the pickup 
                   instructions and be respectful of the donor&apos;s time.
@@ -144,7 +144,7 @@ export default function Help() {
                 </svg>
               </button>
               <div className="px-8 pb-6">
-                <p className="text-gray-600 leading-relaxed">
+                <p className="text-gray-700 leading-relaxed">
                   You can share most types of food including fresh produce, packaged goods, prepared meals, 
                   and pantry items. Please ensure all food is safe to consume, properly stored, and clearly 
                   labeled with expiration dates when applicable. We don&apos;t allow alcohol, raw meat, or 
@@ -161,7 +161,7 @@ export default function Help() {
                 </svg>
               </button>
               <div className="px-8 pb-6">
-                <p className="text-gray-600 leading-relaxed">
+                <p className="text-gray-700 leading-relaxed">
                   If you encounter any issues or safety concerns, please use our reporting feature on the listing 
                   or contact our support team directly. We take all reports seriously and will investigate 
                   promptly to ensure the safety and integrity of our community.
@@ -176,7 +176,7 @@ export default function Help() {
       <section className="bg-white py-24">
         <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
           <h2 className="text-4xl font-bold text-gray-900 mb-6">Still Need Help?</h2>
-          <p className="text-xl text-gray-600 mb-12">
+          <p className="text-xl text-gray-700 mb-12">
             Can&apos;t find what you&apos;re looking for? Our support team is here to help.
           </p>
           
@@ -188,7 +188,7 @@ export default function Help() {
                 </svg>
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-4">Email Support</h3>
-              <p className="text-gray-600 mb-6">Get help via email within 24 hours</p>
+              <p className="text-gray-700 mb-6">Get help via email within 24 hours</p>
               <a href="mailto:support@foodshare.com" className="text-orange-500 font-semibold hover:text-orange-600 transition-colors">
                 support@foodshare.com
               </a>
@@ -201,7 +201,7 @@ export default function Help() {
                 </svg>
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-4">Live Chat</h3>
-              <p className="text-gray-600 mb-6">Chat with our support team in real-time</p>
+              <p className="text-gray-700 mb-6">Chat with our support team in real-time</p>
               <button className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg font-semibold transition-colors">
                 Start Chat
               </button>
@@ -216,7 +216,7 @@ export default function Help() {
           <div className="grid md:grid-cols-4 gap-12">
             <div className="md:col-span-1">
               <h3 className="text-3xl font-bold text-orange-500 mb-6">FoodShare</h3>
-              <p className="text-lg text-gray-600 leading-relaxed">
+              <p className="text-lg text-gray-700 leading-relaxed">
                 Connecting communities through food sharing to reduce waste and build stronger neighborhoods.
               </p>
             </div>
@@ -224,33 +224,33 @@ export default function Help() {
             <div>
               <h4 className="text-xl font-bold text-gray-900 mb-6">Product</h4>
               <ul className="space-y-4">
-                <li><a href="/about" className="text-lg text-gray-600 hover:text-orange-500 transition-colors">Features</a></li>
-                <li><a href="/help" className="text-lg text-gray-600 hover:text-orange-500 transition-colors">Help Center</a></li>
-                <li><a href="/safety" className="text-lg text-gray-600 hover:text-orange-500 transition-colors">Safety Guidelines</a></li>
+                <li><a href="/about" className="text-lg text-gray-700 hover:text-orange-500 transition-colors">Features</a></li>
+                <li><a href="/help" className="text-lg text-gray-700 hover:text-orange-500 transition-colors">Help Center</a></li>
+                <li><a href="/safety" className="text-lg text-gray-700 hover:text-orange-500 transition-colors">Safety Guidelines</a></li>
               </ul>
             </div>
             
             <div>
               <h4 className="text-xl font-bold text-gray-900 mb-6">Company</h4>
               <ul className="space-y-4">
-                <li><a href="/about" className="text-lg text-gray-600 hover:text-orange-500 transition-colors">About</a></li>
-                <li><a href="/contact" className="text-lg text-gray-600 hover:text-orange-500 transition-colors">Contact</a></li>
-                <li><a href="#" className="text-lg text-gray-600 hover:text-orange-500 transition-colors">Careers</a></li>
+                <li><a href="/about" className="text-lg text-gray-700 hover:text-orange-500 transition-colors">About</a></li>
+                <li><a href="/contact" className="text-lg text-gray-700 hover:text-orange-500 transition-colors">Contact</a></li>
+                <li><a href="#" className="text-lg text-gray-700 hover:text-orange-500 transition-colors">Careers</a></li>
               </ul>
             </div>
             
             <div>
               <h4 className="text-xl font-bold text-gray-900 mb-6">Legal</h4>
               <ul className="space-y-4">
-                <li><a href="/privacy" className="text-lg text-gray-600 hover:text-orange-500 transition-colors">Privacy Policy</a></li>
-                <li><a href="/terms" className="text-lg text-gray-600 hover:text-orange-500 transition-colors">Terms of Service</a></li>
-                <li><a href="/contact" className="text-lg text-gray-600 hover:text-orange-500 transition-colors">Contact</a></li>
+                <li><a href="/privacy" className="text-lg text-gray-700 hover:text-orange-500 transition-colors">Privacy Policy</a></li>
+                <li><a href="/terms" className="text-lg text-gray-700 hover:text-orange-500 transition-colors">Terms of Service</a></li>
+                <li><a href="/contact" className="text-lg text-gray-700 hover:text-orange-500 transition-colors">Contact</a></li>
               </ul>
             </div>
           </div>
           
           <div className="border-t border-gray-100 mt-16 pt-8 text-center">
-            <p className="text-lg text-gray-600">
+            <p className="text-lg text-gray-700">
               © 2024 FoodShare. All rights reserved.
             </p>
           </div>

@@ -26,6 +26,41 @@ export default function ProfilePage() {
     sms: false,
     marketing: false,
   });
+  const [stats, setStats] = useState({
+    foodListings: 0,
+    foodClaimed: 0,
+    hoursSaved: 0,
+  });
+  const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
+
+  // Fetch statistics
+  React.useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        if (!user?.id) return;
+        
+        // Fetch user's food listings
+        const listingsRes = await fetch(`/api/listings?donorId=${user.id}`);
+        if (listingsRes.ok) {
+          const listingsData = await listingsRes.json();
+          const listings = listingsData.listings || [];
+          
+          // Count claimed listings (status = 'claimed')
+          const claimedCount = listings.filter((l: any) => l.status === 'claimed').length;
+          
+          setStats({
+            foodListings: listings.length,
+            foodClaimed: claimedCount,
+            hoursSaved: claimedCount * 3, // Assume 3 hours saved per claim
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching statistics:', error);
+      }
+    };
+
+    fetchStats();
+  }, [user?.id]);
 
   if (!user) {
     router.push('/login');
@@ -96,7 +131,7 @@ export default function ProfilePage() {
                 value={formData.name}
                 onChange={handleInputChange}
                 disabled={!isEditing}
-                className={`w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 ${
+                className={`w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 ${
                   !isEditing ? 'bg-gray-50' : ''
                 }`}
               />
@@ -115,7 +150,7 @@ export default function ProfilePage() {
                 value={formData.email}
                 onChange={handleInputChange}
                 disabled={!isEditing}
-                className={`w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 ${
+                className={`w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 ${
                   !isEditing ? 'bg-gray-50' : ''
                 }`}
               />
@@ -134,7 +169,7 @@ export default function ProfilePage() {
                 value={formData.phone}
                 onChange={handleInputChange}
                 disabled={!isEditing}
-                className={`w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 ${
+                className={`w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-gray-900 ${
                   !isEditing ? 'bg-gray-50' : ''
                 }`}
               />
@@ -160,10 +195,10 @@ export default function ProfilePage() {
         <div className="mt-6">
           {isEditing ? (
             <AddressAutocomplete
-              value={formData.address}
-              onChange={(address: string, lat: number, lng: number    ) => handleAddressChange(address, { lat, lng })}
+              defaultValue={formData.address}
+              onAddressSelect={(data) => handleAddressChange(data.address, { lat: data.lat, lng: data.lng })}
               placeholder="Enter your address"
-              required
+              label="Address"
             />
           ) : (
             <div>
@@ -172,7 +207,7 @@ export default function ProfilePage() {
               </label>
               <div className="relative">
                 <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
+                <input
                   type="text"
                   value={formData.address}
                   disabled
@@ -191,22 +226,22 @@ export default function ProfilePage() {
             <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-3">
               <Package className="w-6 h-6 text-orange-500" />
             </div>
-            <div className="text-2xl font-bold text-gray-900">12</div>
-            <div className="text-sm text-gray-600">Food Listings</div>
+            <div className="text-2xl font-bold text-gray-900">{stats.foodListings}</div>
+            <div className="text-sm text-gray-700">Food Listings</div>
           </div>
           <div className="text-center">
             <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
             <Heart className="w-6 h-6 text-green-500" />
             </div>
-            <div className="text-2xl font-bold text-gray-900">8</div>
-            <div className="text-sm text-gray-600">Food Claimed</div>
+            <div className="text-2xl font-bold text-gray-900">{stats.foodClaimed}</div>
+            <div className="text-sm text-gray-700">Food Claimed</div>
           </div>
           <div className="text-center">
             <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
               <Clock className="w-6 h-6 text-blue-500" />
             </div>
-            <div className="text-2xl font-bold text-gray-900">24</div>
-            <div className="text-sm text-gray-600">Hours Saved</div>
+            <div className="text-2xl font-bold text-gray-900">{stats.hoursSaved}</div>
+            <div className="text-sm text-gray-700">Hours Saved</div>
           </div>
         </div>
       </div>
@@ -227,7 +262,7 @@ export default function ProfilePage() {
             <div key={notification.key} className="flex items-center justify-between py-4 border-b border-gray-200 last:border-b-0">
               <div className="flex-1">
                 <div className="font-medium text-gray-900">{notification.label}</div>
-                <div className="text-sm text-gray-600">{notification.description}</div>
+                <div className="text-sm text-gray-700">{notification.description}</div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
@@ -253,7 +288,7 @@ export default function ProfilePage() {
           <div className="flex items-center justify-between py-4 border-b border-gray-200">
             <div>
               <div className="font-medium text-gray-900">Profile Visibility</div>
-              <div className="text-sm text-gray-600">Control who can see your profile information</div>
+              <div className="text-sm text-gray-700">Control who can see your profile information</div>
             </div>
             <select className="border border-gray-300 rounded-lg px-3 py-2 text-sm">
               <option>Public</option>
@@ -264,7 +299,7 @@ export default function ProfilePage() {
           <div className="flex items-center justify-between py-4 border-b border-gray-200">
             <div>
               <div className="font-medium text-gray-900">Location Sharing</div>
-              <div className="text-sm text-gray-600">Allow others to see your general location</div>
+              <div className="text-sm text-gray-700">Allow others to see your general location</div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input type="checkbox" className="sr-only peer" defaultChecked />
@@ -274,7 +309,7 @@ export default function ProfilePage() {
           <div className="flex items-center justify-between py-4">
             <div>
               <div className="font-medium text-gray-900">Data Export</div>
-              <div className="text-sm text-gray-600">Download your data</div>
+              <div className="text-sm text-gray-700">Download your data</div>
             </div>
             <button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
               Export Data
@@ -285,33 +320,92 @@ export default function ProfilePage() {
     </div>
   );
 
-  const renderHelpTab = () => (
-    <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow-sm p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-6">Help & Support</h3>
-        <div className="space-y-4">
-          <div className="grid md:grid-cols-2 gap-4">
-            <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
-              <div className="font-medium text-gray-900 mb-1">FAQ</div>
-              <div className="text-sm text-gray-600">Frequently asked questions</div>
-            </button>
-            <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
-              <div className="font-medium text-gray-900 mb-1">Contact Support</div>
-              <div className="text-sm text-gray-600">Get help from our team</div>
-            </button>
-            <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
-              <div className="font-medium text-gray-900 mb-1">Report Issue</div>
-              <div className="text-sm text-gray-600">Report a problem</div>
-            </button>
-            <button className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
-              <div className="font-medium text-gray-900 mb-1">Terms of Service</div>
-              <div className="text-sm text-gray-600">Read our terms</div>
-            </button>
+  const renderHelpTab = () => {
+    const faqs = [
+      {
+        id: 'listing',
+        question: 'How do I create a food listing?',
+        answer: 'Go to your dashboard and click "Create Listing". Fill in the food details, pickup time, location, and photos. Your listing will be visible to food receivers immediately.',
+      },
+      {
+        id: 'claim',
+        question: 'How do I claim food from a listing?',
+        answer: 'Browse available food listings, select one you\'re interested in, and click "Claim". The food donor will be notified and you can coordinate the pickup time and location.',
+      },
+      {
+        id: 'safety',
+        question: 'How do I know if food is safe to eat?',
+        answer: 'Check the food quality rating and donor reviews. All food should be in good condition. Read the listing description carefully for storage and expiration information.',
+      },
+      {
+        id: 'cancel',
+        question: 'Can I cancel a claim?',
+        answer: 'Yes, you can cancel a claim before the pickup time. Go to your dashboard, find the claim, and click "Cancel Claim". The donor will be notified.',
+      },
+      {
+        id: 'contact',
+        question: 'How do I contact support?',
+        answer: 'Email us at support@foodshare.com or use the contact form in the app. We typically respond within 24 hours.',
+      },
+      {
+        id: 'report',
+        question: 'How do I report an issue?',
+        answer: 'Click "Report Issue" in the Help & Support section or go to your dashboard and use the "Report Problem" option for a specific listing or claim.',
+      },
+    ];
+
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-6">Frequently Asked Questions</h3>
+          <div className="space-y-3">
+            {faqs.map((faq) => (
+              <div key={faq.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                <button
+                  onClick={() => setExpandedFaq(expandedFaq === faq.id ? null : faq.id)}
+                  className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                >
+                  <span className="font-medium text-gray-900 text-left">{faq.question}</span>
+                  <span className={`text-orange-600 transition-transform ${expandedFaq === faq.id ? 'rotate-180' : ''}`}>
+                    ▼
+                  </span>
+                </button>
+                {expandedFaq === faq.id && (
+                  <div className="px-4 py-3 bg-gray-50 border-t border-gray-200">
+                    <p className="text-gray-700 text-sm">{faq.answer}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-6">Additional Resources</h3>
+          <div className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
+              <a href="/safety" className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
+                <div className="font-medium text-gray-900 mb-1">Safety Guidelines</div>
+                <div className="text-sm text-gray-700">Food safety best practices</div>
+              </a>
+              <a href="/contact" className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
+                <div className="font-medium text-gray-900 mb-1">Contact Support</div>
+                <div className="text-sm text-gray-700">Get help from our team</div>
+              </a>
+              <a href="/terms" className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
+                <div className="font-medium text-gray-900 mb-1">Terms of Service</div>
+                <div className="text-sm text-gray-700">Read our terms</div>
+              </a>
+              <a href="/privacy" className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left">
+                <div className="font-medium text-gray-900 mb-1">Privacy Policy</div>
+                <div className="text-sm text-gray-700">Your data and privacy</div>
+              </a>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -379,8 +473,8 @@ export default function ProfilePage() {
               <div className="flex items-center mt-2">
                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                   user.role === 'donor' 
-                    ? 'bg-green-100 text-green-800' 
-                    : 'bg-blue-100 text-blue-800'
+                    ? 'bg-green-500 text-green-100' 
+                    : 'bg-blue-500 text-blue-100'
                 }`}>
                   {user.role === 'donor' ? 'Food Donor' : 'Food Receiver'}
                 </span>
